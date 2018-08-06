@@ -1,10 +1,7 @@
 import plotly as plot
 import plotly.graph_objs as go
-import tkinter
 from enum import Enum
 from datetime import datetime
-
-
 
 class AXES(Enum):
     X_AXIS = 0
@@ -13,7 +10,6 @@ class AXES(Enum):
     ALL_AXES = 3
 
 raw_data = [[], [], [], [], [], [], []]
-
 event_lines = []
 
 def read_data(filename):
@@ -31,10 +27,6 @@ def read_data(filename):
                 i = i + 1
             line_count = line_count + 1
 
-    # for i in raw_data:
-    #     print("X_ACCEL: {0}, Y_ACCEL: {1}, Z_ACCEL: {2}\nX_GYRO: {3}, Y_GYRO: {4}, Z_GYRO: {5}\nTEMP: {6}".format(
-    #         i[0], i[1], i[2], i[3], i[4], i[5], i[6]))
-
 def get_list_of_data_values(size):
     i = 0;
     count = []
@@ -43,14 +35,11 @@ def get_list_of_data_values(size):
         i = i + 1
     return count
 
-def plot_raw(title, axe_label, data_count, value = []):
-    plot_raw(title, axe_label, data_count, value, [], [])
+def plot_raw(graph_title, axe_label, data_count, values = []):
 
-def plot_raw(graph_title, axe_label, data_count,  value_0 = [], value_1 = [], value_2 = []):
-
-    fileName = ""
     extension = str(datetime.now().time())
     extension = extension.replace(":", "_")
+
     if graph_title.find('Acceleration') != -1:
         fileName = "Accel_Data"
     elif graph_title.find("Gyro") != -1:
@@ -60,27 +49,27 @@ def plot_raw(graph_title, axe_label, data_count,  value_0 = [], value_1 = [], va
 
     fileName = fileName + "_" + extension + ".html"
     list = get_list_of_data_values(data_count)
+    traces = []
 
-    trace0 = go.Scatter(
-        x = list,
-        y = value_0,
-        name = 'X Axis',
-        mode = 'lines',
-    )
-    trace1 = go.Scatter(
-        x = list,
-        y = value_1,
-        name = 'Y Axis',
-        mode = 'lines'
-    )
-    trace2 = go.Scatter(
-        x = list,
-        y = value_2,
-        name = 'Z Axis',
-        mode = 'lines'
-    )
-
-    data = [trace0, trace1, trace2]
+    if len(values) <= 3 and len(values) > 0:
+        for i in values:
+            trace = go.Scatter(
+                    x = list,
+                    y = i,
+                    name = 'X Axis',
+                    mode = 'lines',
+            )
+            traces.append(trace)
+    elif len(values) > 3:
+        trace = go.Scatter(
+            x=list,
+            y=values,
+            name='X Axis',
+            mode='lines',
+        )
+        traces.append(trace)
+    else:
+        return
 
     layout = dict(
         title = graph_title,
@@ -88,43 +77,56 @@ def plot_raw(graph_title, axe_label, data_count,  value_0 = [], value_1 = [], va
         yaxis = dict(title = axe_label)
     )
 
-    fig = dict(data = data, layout = layout)
+    fig = dict(data = traces, layout = layout)
     plot.offline.plot(fig, filename = fileName)
 
-def plot_accel(axis):
-    if axis == AXES.ALL_AXES:
-        plot_raw("Acceleration for All Axes", "Force (G's)", len(raw_data[0]), raw_data[0], raw_data[1], raw_data[2])
-    elif axis == AXES.X_AXIS:
-        plot_raw("Acceleration for X Axis", "Force (G's)", len(raw_data[0]), raw_data[0])
-    elif axis == AXES.Y_AXIS:
-        plot_raw("Acceleration for Y Axis", "Force (G's)", len(raw_data[0]), raw_data[1])
-    elif axis == AXES.Z_AXIS:
-        plot_raw("Acceleration for Z Axis", "Forces (G's)", len(raw_data[0]), raw_data[2])
-    else:
+def plot_accel(axes = []):
+    axes = is_valid_selection_list(axes)
+    if axes == False:
         return -1
 
+    data_list = []
 
-def plot_gyro(axis):
-    if axis == AXES.ALL_AXES:
-        plot_raw("Gyro for All Axes", "Degrees", len(raw_data[0]), raw_data[3], raw_data[4], raw_data[5])
-    elif axis == AXES.X_AXIS:
-        plot_raw("Gyro for X Axis", "Degrees", len(raw_data[0]), raw_data[3])
-    elif axis == AXES.Y_AXIS:
-        plot_raw("Gyro for Y Axis", "Degrees", len(raw_data[0]), raw_data[4])
-    elif axis == AXES.Z_AXIS:
-        plot_raw("Gyro for Z Axis", "Degrees", len(raw_data[0]), raw_data[5])
-    else:
+    if axes.count(AXES.X_AXIS) == 1:
+        data_list.append(raw_data[0])
+    if axes.count(AXES.Y_AXIS) == 1:
+        data_list.append(raw_data[1])
+    if axes.count(AXES.Z_AXIS) == 1:
+        data_list.append(raw_data[2])
+
+    plot_raw("Acceleration", "Force (G's)", len(raw_data[0]), data_list)
+
+def plot_gyro(axes = []):
+    axes = is_valid_selection_list(axes)
+    if axes == False:
         return -1
+
+    data_list = []
+
+    if axes.count(AXES.X_AXIS) == 1:
+        data_list.append(raw_data[3])
+    if axes.count(AXES.Y_AXIS) == 1:
+        data_list.append(raw_data[4])
+    if axes.count(AXES.Z_AXIS) == 1:
+        data_list.append(raw_data[5])
+
+    plot_raw("Gyro", "Degrees/Second", len(raw_data[0]), data_list)
 
 def plot_temp():
     plot_raw("Temperature", "Temp (Celsius)", len(raw_data[0]), raw_data[6])
 
-def main():
-    filename = "C:/Users/Chris/Desktop/DATALOG.TXT"
-    read_data(filename)
-    plot_accel(AXES.ALL_AXES)
-    plot_gyro(AXES.ALL_AXES)
-    # plot_temp()
-    for i in event_lines:
-        print(i)
-main()
+def is_valid_selection_list(list = []):
+    if list is None:
+        print("Empty Axis List!")
+        return False
+
+    axis_list = []
+
+    if list.count("X Axis") == 1:
+        axis_list.append(AXES.X_AXIS)
+    if list.count("Y Axis") == 1:
+        axis_list.append(AXES.Y_AXIS)
+    if list.count("Z Axis") == 1:
+        axis_list.append(AXES.Z_AXIS)
+
+    return axis_list
